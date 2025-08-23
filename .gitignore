@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Virtual envs
+.venv/
+venv/
+ENV/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# FastF1 cache (whichever path you ended up with)
+f1_predictor/f1cache/
+F1_prediction_system/f1cache/
+
+# Outputs / logs
+predicted_order.csv
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Envs
+.venv/
+venv/
+
+# FastF1 cache and artifacts
+f1cache/
+f1_predictor/f1cache/
+**/f1cache/
+*.ff1pkl
+fastf1_http_cache.sqlite
+
+# Local outputs
+predicted_order.csv
+
+# Editors/OS junk
+.vscode/
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
+
+f1cache/
+**/f1cache/
+fastf1_http_cache.sqlite
+.venv/
+predicted_order.csv
+*.ff1pkl
