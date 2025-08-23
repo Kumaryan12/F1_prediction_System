@@ -40,6 +40,10 @@ def main():
                         help="Force pre-qualifying mode (ignore Q and use quali proxy)")
     parser.add_argument("--proxy_window", type=int, default=3,
                         help="Window for quali proxy rolling mean (when --preq or grid unknown)")
+    parser.add_argument("--mc", type=int, default=500,
+                        help="Monte-Carlo samples for rank probabilities (0 disables)")
+    parser.add_argument("--interval", type=int, choices=(68, 95), default=68,
+                        help="Confidence interval width to display in console (68 or 95)")
     args = parser.parse_args()
 
     target_year, target_gp = args.year, args.gp
@@ -53,7 +57,7 @@ def main():
     print("[INFO] Training model…")
     model = train_model(train_df)
 
-    # Optional: Out-of-bag diagnostics (requires oob_score=True in model)
+    # Optional: Out-of-bag diagnostics
     errs = oob_errors(model, train_df)
     if errs:
         print(f"[OOB] R2={errs['oob_r2']:.3f} | MAE={errs['oob_mae']:.2f} | RMSE={errs['oob_rmse']:.2f}")
@@ -77,13 +81,26 @@ def main():
         if col not in pred_df.columns:
             raise RuntimeError(f"Prediction frame missing required column: {col}")
 
-    # 4) Predict with uncertainty
+    # 4) Predict with uncertainty (adds std, 68/95% intervals; MC adds p_top10/p_podium/etc.)
     print("[INFO] Predicting order…")
-    out = predict_event_with_uncertainty(model, pred_df)
+    out = predict_event_with_uncertainty(
+        model,
+        pred_df,
+        
+    )
 
-    # 5) Print Top-10 with intervals if present
+    # 5) Print Top-10 with chosen interval
+    # Map which interval columns to show
+    if args.interval == 95:
+        lo_col, hi_col = "pi95_low", "pi95_high"
+    else:
+        lo_col, hi_col = "pi68_low", "pi68_high"
+
     cols_to_print = [c for c in (
-        "driver", "team", "grid_pos", "pred_finish", "pred_rank", "pred_std", "pred_low", "pred_high"
+        "driver", "team", "grid_pos",
+        "pred_finish", "pred_rank", "pred_std",
+        lo_col, hi_col,
+        "p_top10", "p_podium", "p_rank_pm1"
     ) if c in out.columns]
 
     print("\nPredicted Top 10:")
