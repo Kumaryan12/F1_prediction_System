@@ -97,33 +97,63 @@ flowchart LR
   E -- "trained model" --> P5
   M -- "load_model" --> P5
 
-```
 
 
 
-
-Runtime path (train vs predict)
 
 sequenceDiagram
-  participant User
+  autonumber
+  actor User
   participant CLI as python -m F1_prediction_system.main
   participant Data as data.py
   participant Feat as features.py
   participant Model as model.py
 
-  User->>CLI: --year 2025 --gp "Dutch Grand Prix"
-  CLI->>Data: build_training_until()
+  User->>CLI: --year 2025 --gp "Dutch Grand Prix" [flags...]
+  CLI->>Data: build_training_until(year, gp, HIST_YEARS)
   Data-->>CLI: train_df
-  CLI->>Feat: add_driver_team_form(), add_circuit_context_df()
+  CLI->>Feat: add_driver_team_form(train_df)
+  Feat-->>CLI: train_df (forms)
+  CLI->>Feat: add_circuit_context_df(train_df)
   Feat-->>CLI: train_df+
-  CLI->>Model: train_model(train_df+)
-  Model-->>CLI: pipeline (prep + RF)
-  CLI->>Data: get_target_drivers()
-  CLI->>Feat: merge_latest_forms(), add_quali_proxy()
-  Feat-->>CLI: pred_df
-  CLI->>Model: predict_event_with_uncertainty(model, pred_df)
-  Model-->>CLI: predictions + intervals + MC probs
-  CLI-->>User: Top-10 table & saved CSV
+
+  alt --load_model PATH
+    CLI->>Model: load_model_artifact(PATH)
+    Model-->>CLI: model, meta
+    alt --auto_retrain or feature mismatch/newer data
+      CLI->>Model: train_model(train_df+)
+      Model-->>CLI: trained pipeline (prep + RF)
+    end
+  else Train fresh
+    CLI->>Model: train_model(train_df+)
+    Model-->>CLI: trained pipeline (prep + RF)
+  end
+
+  CLI->>Model: oob_errors(model, train_df+)
+  Model-->>CLI: OOB R² / MAE / RMSE (printed)
+
+  CLI->>Data: get_target_drivers(year, gp)
+  Data-->>CLI: pred_df (Q or FP1)
+
+  CLI->>Feat: merge_latest_forms(pred_df, train_df+)
+  Feat-->>CLI: pred_df+
+
+  alt grid_pos missing or --preq
+    CLI->>Feat: add_quali_proxy(pred_df+, window)
+    Feat-->>CLI: pred_df* (grid filled)
+  end
+
+  CLI->>Model: predict_event_with_uncertainty(model, pred_df*, mc=..., intervals=...)
+  Model-->>CLI: predictions + std + 68/95% bands + MC probs
+
+  CLI-->>User: Top-10 table (console)
+  CLI->>User: Save predicted_order.csv
+
+  opt --save_model PATH
+    CLI->>Model: save_model_artifact(model, PATH, meta)
+    Model-->>CLI: models/rf_latest.joblib
+  end
+```
 
 ```bash
 .
