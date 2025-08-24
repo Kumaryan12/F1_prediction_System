@@ -66,34 +66,36 @@ Table of Contents
 ## Architecture
 
 flowchart LR
-  %% ===== TRAINING =====
+
+  %% ===================== TRAINING =====================
   subgraph TRAINING[Training Pipeline]
     direction LR
-    A[Historic results\n(FastF1 / Ergast cache)]
+    A[Historic results<br/>(FastF1 / Ergast cache)]
     B[build_training_until()]
-    C[add_driver_team_form()\n(shifted 3-race rolling)]
+    C[add_driver_team_form()<br/>(shifted 3-race rolling)]
     D[add_circuit_context_df()]
-    E[train_model()\n(RandomForest + OHE + Imputer)]
-    F[oob_errors()\n(OOB R² / MAE / RMSE)]
+    E[train_model()<br/>(RandomForest + OHE + Imputer)]
+    F[oob_errors()<br/>(OOB R² / MAE / RMSE)]
     A --> B --> C --> D --> E --> F
     E --> M[(models/*.joblib)]
   end
 
-  %% ===== PREDICTION =====
+  %% ===================== PREDICTION ====================
   subgraph PRED[Prediction (Target GP)]
     direction LR
-    P1[get_target_drivers()\n(Q → FP1 → proxy)]
+    P1[get_target_drivers()<br/>(Q → FP1 → proxy)]
     P2[add_circuit_context_df()]
-    P3[merge_latest_forms()\n(driver/team forms from history)]
-    P4[add_quali_proxy()\n(if grid unknown or --preq)]
+    P3[merge_latest_forms()<br/>(driver & team form)]
+    P4[add_quali_proxy()<br/>(if grid unknown or --preq)]
     P5[predict_event_with_uncertainty()]
-    O[predicted_order.csv\n+ console Top-10]
+    O[predicted_order.csv<br/>+ console Top-10]
     P1 --> P2 --> P3 --> P4 --> P5 --> O
   end
 
-  %% connect trained/saved model to prediction
+  %% ===================== LINKS ========================
   E -- trained model --> P5
   M -- load_model --> P5
+
 
 
 
