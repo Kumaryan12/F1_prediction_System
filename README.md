@@ -111,6 +111,7 @@ sequenceDiagram
   Model-->>CLI: predictions + intervals + MC probs
   CLI-->>User: Top-10 table & saved CSV
 
+```bash
 .
 ├── F1_prediction_system/        # your package
 │   ├── __init__.py
@@ -131,7 +132,8 @@ sequenceDiagram
 ├── Makefile
 ├── .gitignore
 └── README.md
-
+````
+---
 
 Installation
 
