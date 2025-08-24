@@ -62,7 +62,7 @@ Table of Contents
 
 </details>
 
-
+## Architecture
 flowchart LR
 
   %% ===================== TRAINING =====================
@@ -100,6 +100,7 @@ flowchart LR
   classDef pred     fill:#fff4e6,stroke:#d27600,stroke-width:1px,color:#3d1c00;
   class A,B,C,D,E,F,M training;
   class P1,P2,P3,P4,P5,O pred;
+
 
 
 
