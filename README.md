@@ -6,51 +6,31 @@ The project pulls historical results up to a target Grand Prix, engineers driver
 <p align="center"> <img src="docs/img/hero.png" alt="F1 Race Predictor overview" width="820"> <br> <em>End-to-end: data ➜ features ➜ model ➜ predictions (with uncertainty)</em> </p>
 Table of Contents
 
-Highlights
+## Table of Contents
 
-Architecture
-
-Project Structure
-
-Installation
-
-Quickstart
-
-Train & Predict (single shot)
-
-Save a Trained Model
-
-Predict Using a Saved Model
-
-Pre-Qualifying Mode
-
-Command Line Flags
-
-How It Works
-
-Data & Target Drivers
-
-Feature Engineering (leakage-safe)
-
-Model & Uncertainty
-
-Evaluation (OOB)
-
-Configuration
-
-Saved Model Artifacts
-
-Troubleshooting
-
-Roadmap
-
-Contributing
-
-License
-
-Acknowledgements
-
-One-liners
+- [Highlights](#highlights)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Installation](#installation)
+- [Quickstart](#quickstart)
+  - [1) Train & Predict (single shot)](#1-train--predict-single-shot)
+  - [2) Save a Trained Model](#2-save-a-trained-model)
+  - [3) Predict Using a Saved Model (no retrain)](#3-predict-using-a-saved-model-no-retrain)
+  - [4) Pre-Qualifying Mode (force quali proxy)](#4-pre-qualifying-mode-force-quali-proxy)
+- [Command Line Flags](#command-line-flags)
+- [How It Works](#how-it-works)
+  - [Data & Target Drivers](#data--target-drivers)
+  - [Feature Engineering (leakage-safe)](#feature-engineering-leakage-safe)
+  - [Model & Uncertainty](#model--uncertainty)
+  - [Evaluation (OOB)](#evaluation-oob)
+  - [Configuration](#configuration)
+  - [Saved Model Artifacts](#saved-model-artifacts)
+- [Troubleshooting](#troubleshooting)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
+- [One-liners You’ll Use Often](#one-liners-youll-use-often)
 
 Highlights
 
