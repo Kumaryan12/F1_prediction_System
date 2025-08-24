@@ -63,8 +63,6 @@ Table of Contents
 </details>
 
 
-## Architecture
-
 flowchart LR
 
   %% ===================== TRAINING =====================
@@ -76,8 +74,9 @@ flowchart LR
     D[add_circuit_context_df()]
     E[train_model()<br/>(RandomForest + OHE + Imputer)]
     F[oob_errors()<br/>(OOB R² / MAE / RMSE)]
+    M[(models/*.joblib)]
     A --> B --> C --> D --> E --> F
-    E --> M[(models/*.joblib)]
+    E --> M
   end
 
   %% ===================== PREDICTION ====================
@@ -93,8 +92,14 @@ flowchart LR
   end
 
   %% ===================== LINKS ========================
-  E -- trained model --> P5
+  E -- trained pipeline --> P5
   M -- load_model --> P5
+
+  %% ===================== STYLES =======================
+  classDef training fill:#e9f2ff,stroke:#1f62d1,stroke-width:1px,color:#0b1f4a;
+  classDef pred     fill:#fff4e6,stroke:#d27600,stroke-width:1px,color:#3d1c00;
+  class A,B,C,D,E,F,M training;
+  class P1,P2,P3,P4,P5,O pred;
 
 
 
