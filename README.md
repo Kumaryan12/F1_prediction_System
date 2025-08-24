@@ -31,19 +31,19 @@ Table of Contents
 - [Acknowledgements](#acknowledgements)
 - [One-liners You’ll Use Often](#one-liners-youll-use-often)
 
-Highlights
+<details>
+<summary><b>Highlights</b></summary>
 
-End-to-end pipeline: history → driver/team form (leakage-safe) → circuit context → model.
+- **End-to-end pipeline:** history → driver/team form (leakage-safe) → circuit context → model.
+- **Uncertainty built-in:** per-driver prediction σ, 68%/95% bands, and Monte-Carlo rank probabilities (Top-10, Podium, ±1 rank).
+- **Pre-Quali fallback:** if Q/FP1 are missing, a quali proxy from recent races is used.
+- **Model persistence:** save/load trained pipelines with metadata (feature list, training dates, OOB metrics).
+- **CLI workflow:** one command to train, evaluate, and predict.
+<p align="right"><a href="#readme-top">↑ back to top</a></p>
 
-Uncertainty built-in: per-driver prediction σ, 68%/95% bands, and Monte-Carlo rank probabilities (Top-10, Podium, ±1 rank).
+</details>
 
-Pre-Quali fallback: if Q/FP1 are missing, a quali proxy from recent races is used.
 
-Model persistence: save/load trained pipelines with metadata (feature list, train dates, OOB metrics).
-
-CLI workflow: one command to train, evaluate, and predict.
-
-Example Output
 
 **Example Output (table)**
 
@@ -55,15 +55,16 @@ Example Output
 | …      | …                 | …        | …           | …         | …        | …        | …         | …       | …        | …          |
 
 
-Field notes
+<details>
+<summary><b>Field notes</b></summary>
 
-pred_finish: expected finishing position (lower = better)
+- `pred_finish` — expected finishing position (lower = better)
+- `pred_std` — per-driver uncertainty from tree dispersion (variance across RF trees)
+- `pi68_low` / `pi68_high`, `pi95_low` / `pi95_high` — 68% / 95% predictive intervals
+- `p_top10`, `p_podium`, `p_rank_pm1` — Monte Carlo rank probabilities
 
-pred_std: uncertainty from tree dispersion
+</details>
 
-pi68_*, pi95_*: 68% / 95% predictive intervals
-
-p_top10, p_podium, p_rank_pm1: MC rank probabilities
 
 Architecture
 flowchart LR
