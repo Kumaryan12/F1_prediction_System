@@ -111,22 +111,27 @@ sequenceDiagram
   Model-->>CLI: predictions + intervals + MC probs
   CLI-->>User: Top-10 table & saved CSV
 
-Project Structure
-F1_prediction_system/
-  ├─ __init__.py
-  ├─ main.py                 # CLI entry point
-  ├─ data.py                 # data loading & target driver selection
-  ├─ features.py             # feature engineering (forms, circuit context, quali proxy)
-  ├─ model.py                # train RF, OOB errors, uncertainty, save/load helpers
-  ├─ config.py               # HIST_YEARS, CIRCUIT_VOL, defaults
-models/
-  └─ rf_latest.joblib        # (optional) saved model artifact
-predicted_order.csv          # output with full predictions (created by runs)
-LICENSE
-README.md
-docs/
-  ├─ img/                    # screenshots/diagrams for README
-  └─ diagrams/               # Mermaid / draw.io sources
+.
+├── F1_prediction_system/        # your package
+│   ├── __init__.py
+│   ├── main.py
+│   ├── data.py
+│   ├── features.py
+│   ├── model.py
+│   └── config.py
+├── models/                      # saved models (.joblib)
+│   └── rf_latest.joblib         # (optional, created by you)
+├── docs/                        # images, diagrams, example outputs
+│   ├── architecture.mmd         # Mermaid source (optional)
+│   ├── architecture.png         # exported diagram (optional)
+│   ├── example_output.png       # screenshot of console/table
+│   └── banner.png               # project banner (optional)
+├── predicted_order.csv          # created by runs (gitignore if you want)
+├── requirements.txt
+├── Makefile
+├── .gitignore
+└── README.md
+
 
 Installation
 
