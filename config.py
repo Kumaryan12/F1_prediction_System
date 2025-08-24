@@ -1,6 +1,6 @@
-# F1_prediction_system/config.py
+
 from pathlib import Path
-from typing import Dict, Tuple  # If you're on 3.9+, you can use dict/tuple built-ins instead.
+from typing import Dict, Tuple  
 
 # Where FastF1 stores/cache data (inside this package folder)
 CACHE_DIR: Path = Path(__file__).resolve().parent / "f1cache"
