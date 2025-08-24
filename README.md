@@ -1,27 +1,80 @@
 F1 Race Predictor (RF + Uncertainty)
 
-Predict Formula 1 race finishing order using a leakage-safe feature pipeline, a Random Forest regressor, and uncertainty estimates. The project pulls historical results up to a target Grand Prix, engineers “form” and circuit context features, and produces both point predictions and confidence bands. It’s resilient to missing current-weekend data (e.g., when qualifying hasn’t posted yet).
+Predict the finishing order of Formula 1 races with a leakage-safe feature pipeline, a Random Forest regressor, and built-in uncertainty.
+The project pulls historical results up to a target Grand Prix, engineers driver/team “form” and circuit context features, and produces point predictions plus confidence bands. It gracefully handles missing current-weekend data (e.g., qualifying not published yet).
+
+<p align="center"> <img src="docs/img/hero.png" alt="F1 Race Predictor overview" width="820"> <br> <em>End-to-end: data ➜ features ➜ model ➜ predictions (with uncertainty)</em> </p>
+Table of Contents
 
 Highlights
 
-End-to-end pipeline: history ➜ driver/team form (leakage-safe) ➜ circuit context ➜ model.
+Architecture
 
-Uncertainty built-in: per-driver prediction std, 68%/95% bands, and Monte-Carlo rank probabilities (Top-10, Podium, ±1 rank).
+Project Structure
 
-Pre-Quali fallback: if Q/FP1 data is missing for the current weekend, a quali proxy from recent races is used.
+Installation
+
+Quickstart
+
+Train & Predict (single shot)
+
+Save a Trained Model
+
+Predict Using a Saved Model
+
+Pre-Qualifying Mode
+
+Command Line Flags
+
+How It Works
+
+Data & Target Drivers
+
+Feature Engineering (leakage-safe)
+
+Model & Uncertainty
+
+Evaluation (OOB)
+
+Configuration
+
+Saved Model Artifacts
+
+Troubleshooting
+
+Roadmap
+
+Contributing
+
+License
+
+Acknowledgements
+
+One-liners
+
+Highlights
+
+End-to-end pipeline: history → driver/team form (leakage-safe) → circuit context → model.
+
+Uncertainty built-in: per-driver prediction σ, 68%/95% bands, and Monte-Carlo rank probabilities (Top-10, Podium, ±1 rank).
+
+Pre-Quali fallback: if Q/FP1 are missing, a quali proxy from recent races is used.
 
 Model persistence: save/load trained pipelines with metadata (feature list, train dates, OOB metrics).
 
 CLI workflow: one command to train, evaluate, and predict.
 
 Example Output
+
 Predicted Top 10:
 driver            team  grid_pos  pred_finish  pred_rank  pred_std  pi68_low  pi68_high  p_top10  p_podium  p_rank_pm1
-   PIA         McLaren  2.33          1.71           1     1.28      1.00       2.99      1.000     0.912       0.660
-   NOR         McLaren  1.67          2.81           2     3.07      1.00       5.88      0.996     0.624       0.624
-   VER Red Bull Racing  2.33          5.21           3     4.39      1.00       9.60      0.864     0.354       0.332
+   PIA         McLaren     2.33         1.71          1     1.28      1.00       2.99     1.000     0.912       0.660
+   NOR         McLaren     1.67         2.81          2     3.07      1.00       5.88     0.996     0.624       0.624
+   VER Red Bull Racing     2.33         5.21          3     4.39      1.00       9.60     0.864     0.354       0.332
    ...
 
+
+Field notes
 
 pred_finish: expected finishing position (lower = better)
 
@@ -31,30 +84,63 @@ pi68_*, pi95_*: 68% / 95% predictive intervals
 
 p_top10, p_podium, p_rank_pm1: MC rank probabilities
 
+Architecture
+flowchart LR
+  A[Historic results (FastF1/Ergast)] --> B[build_training_until()]
+  B --> C[add_driver_team_form()]
+  C --> D[add_circuit_context_df()]
+  D --> E[train_model(RandomForest + OHE + Imputer)]
+  E --> F[oob_errors()]
+  E --> G[predict_event_with_uncertainty()]
+  G --> H[MC ranks & predictive intervals]
+  H --> I[predicted_order.csv]
+
+
+Runtime path (train vs predict)
+
+sequenceDiagram
+  participant User
+  participant CLI as python -m F1_prediction_system.main
+  participant Data as data.py
+  participant Feat as features.py
+  participant Model as model.py
+
+  User->>CLI: --year 2025 --gp "Dutch Grand Prix"
+  CLI->>Data: build_training_until()
+  Data-->>CLI: train_df
+  CLI->>Feat: add_driver_team_form(), add_circuit_context_df()
+  Feat-->>CLI: train_df+
+  CLI->>Model: train_model(train_df+)
+  Model-->>CLI: pipeline (prep + RF)
+  CLI->>Data: get_target_drivers()
+  CLI->>Feat: merge_latest_forms(), add_quali_proxy()
+  Feat-->>CLI: pred_df
+  CLI->>Model: predict_event_with_uncertainty(model, pred_df)
+  Model-->>CLI: predictions + intervals + MC probs
+  CLI-->>User: Top-10 table & saved CSV
+
 Project Structure
 F1_prediction_system/
   ├─ __init__.py
   ├─ main.py                 # CLI entry point
   ├─ data.py                 # data loading & target driver selection
   ├─ features.py             # feature engineering (forms, circuit context, quali proxy)
-  ├─ model.py                # model training, OOB errors, uncertainty, save/load helpers
-  ├─ config.py               # constants: HIST_YEARS, CIRCUIT_VOL, defaults
+  ├─ model.py                # train RF, OOB errors, uncertainty, save/load helpers
+  ├─ config.py               # HIST_YEARS, CIRCUIT_VOL, defaults
 models/
-  └─ rf_latest.joblib        # (optional) saved model artifact (created by you)
+  └─ rf_latest.joblib        # (optional) saved model artifact
 predicted_order.csv          # output with full predictions (created by runs)
 LICENSE
 README.md
+docs/
+  ├─ img/                    # screenshots/diagrams for README
+  └─ diagrams/               # Mermaid / draw.io sources
 
 Installation
 
-Python: 3.10+ recommended (project known to run with 3.13 too).
-Dependencies (core):
+Python: 3.10+ recommended (tested on 3.13 as well)
 
-pandas, numpy, scikit-learn>=1.1, joblib
-
-FastF1 (uses Ergast/Timing backing APIs; you’ll see FastF1-style logs)
-
-Install:
+Dependencies: pandas, numpy, scikit-learn>=1.1, joblib, fastf1
 
 python -m venv .venv
 # Windows
@@ -66,7 +152,7 @@ pip install -U pip
 pip install pandas numpy scikit-learn joblib fastf1
 
 
-If you use a corporate network, allow FastF1 to fetch data (or pre-warm its cache).
+On corporate networks, ensure FastF1 can fetch data or pre-warm its cache.
 
 Quickstart
 1) Train & Predict (single shot)
@@ -91,7 +177,7 @@ python -m F1_prediction_system.main \
   --save_model models/rf_latest.joblib
 
 
-The artifact contains the sklearn pipeline and metadata (feature list, training date range, OOB metrics, etc.).
+The artifact stores the sklearn pipeline and metadata (feature list, training date range, OOB metrics, etc.).
 
 3) Predict Using a Saved Model (no retrain)
 python -m F1_prediction_system.main \
@@ -112,98 +198,82 @@ python -m F1_prediction_system.main \
   --preq --proxy_window 3
 
 Command Line Flags
---year INT                  Target season (e.g., 2025)
---gp STR                    Target GP name (e.g., "Dutch Grand Prix")
-
---preq                      Force pre-qualifying behavior (ignore Q; use quali proxy)
---proxy_window INT          Rolling window for quali proxy (default 3)
-
---mc INT                    Monte-Carlo samples for rank probabilities (default 500; 0 = off)
---interval {68,95}          Which interval to display in console (default 68)
-
---load_model PATH           Load a saved model (artifact or plain joblib Pipeline)
---save_model PATH           Save the trained model artifact
---auto_retrain              If the loaded model is stale or features changed, retrain
---force_load                Use the loaded model even if features differ (not recommended)
-
---weather_csv PATH          Reserved (CSV with rain/temp); not wired yet
---use_conformal             Reserved (split-conformal intervals); not wired yet
---alpha FLOAT               Reserved (conformal alpha, default 0.20)
-
+Flag	Type	Default	Description
+--year	int	2025	Target season
+--gp	str	"Dutch Grand Prix"	Target GP name
+--preq	flag	off	Force pre-qualifying behavior (ignore Q; use quali proxy)
+--proxy_window	int	3	Rolling window for quali proxy
+--mc	int	500	Monte-Carlo samples for rank probabilities (0 = off)
+--interval	{68,95}	68	Which interval to show in console
+--load_model	path	–	Load a saved model (artifact or plain Pipeline)
+--save_model	path	–	Save the trained model artifact
+--auto_retrain	flag	off	Retrain if loaded model is stale or features changed
+--force_load	flag	off	Use a loaded model even if features differ (not advised)
+--weather_csv	path	–	Reserved (rain/temp merge)
+--use_conformal	flag	off	Reserved (split-conformal intervals)
+--alpha	float	0.20	Reserved conformal alpha
 How It Works
 Data & Target Drivers
 
-Uses the event list up to (but excluding) the target GP to build training rows.
+Uses all events before the target GP to build the training set.
 
-For the prediction event, tries to load Qualifying results (driver list & grid).
-If missing, falls back to FP1 (if any). If still missing, uses the quali proxy.
+For the prediction event, tries Qualifying results (driver list & grid).
+
+If missing, falls back to FP1. If still missing, uses the quali proxy.
 
 Feature Engineering (leakage-safe)
 
-Driver form (3-race): rolling mean of past 3 finishes, shifted by 1 race ➜ no peeking.
+Driver form (3-race): trailing mean of finishes, shifted by 1 (no peeking).
 
-Team form (3-race): compute team average per race, then rolling mean, shifted by 1.
+Team form (3-race): team average per race → trailing mean, shifted by 1.
 
-Circuit context: per-GP priors like sc_prob, vsc_prob, pit_loss from config.py.
+Circuit context: prior sc_prob, vsc_prob, pit_loss from config.py.
 
-Quali proxy: driver’s rolling mean grid over the last N races to fill unknown grid_pos.
+Quali proxy: driver’s trailing mean grid over the last N races to fill unknown grid_pos.
 
-Model
+Model & Uncertainty
 
-RandomForestRegressor with:
+Model: RandomForestRegressor with a preprocessing pipeline:
 
-preprocessing: median impute numeric, one-hot encode categoricals
+numeric → median impute
 
-oob_score=True for quick, leak-resistant diagnostics
+categoricals (team, driver) → one-hot encode
+
+OOB (oob_score=True): fast, leak-resistant diagnostics.
 
 Uncertainty:
 
 Per-driver std from per-tree prediction dispersion.
 
-Optional MC sampling to estimate p_top10, p_podium, p_rank±1.
+Optional Monte Carlo sampling → p_top10, p_podium, p_rank_pm1.
 
-68%/95% intervals as simple normal bands around the mean (informative, not calibrated).
+68% / 95% intervals as simple normal bands around the mean (informative, not calibrated).
 
 Evaluation (OOB)
 
-Prints OOB R² / MAE / RMSE from the RF’s out-of-bag predictions.
+Prints OOB R² / MAE / RMSE from RF’s out-of-bag predictions.
 
 For rigorous evaluation, add chronological backtests (see Roadmap).
 
 Configuration
 
-config.py includes:
+config.py contains:
 
 HIST_YEARS: list of past seasons to include (e.g., [2023, 2024, 2025])
 
-CIRCUIT_VOL: mapping from GP name ➜ (sc_prob, vsc_prob, pit_loss_seconds)
+CIRCUIT_VOL: GP → (sc_prob, vsc_prob, pit_loss_seconds)
 
 Defaults for unknown circuits: DEFAULT_SC, DEFAULT_VSC, DEFAULT_PIT_LOSS
-
-You can extend this with more priors (e.g., weather/seasonality) as you refine the model.
+Extend with weather/seasonality or other priors as the model evolves.
 
 Saved Model Artifacts
 
-Artifacts saved via --save_model are joblib files that include:
-
-model: the sklearn Pipeline (preprocess + RF)
-
-meta: JSON-serializable dict with
-
-feat_list, train_rows, train_start_date, train_end_date
-
-hist_years & hist_years_n
-
-oob metrics
-
-model_desc, code_version, saved_at, and target context
-
-Load with --load_model or:
+Artifacts saved via --save_model are joblib files containing:
 
 import joblib
 artifact = joblib.load("models/rf_latest.joblib")
-model = artifact["model"]
-meta = artifact["meta"]
+model = artifact["model"]   # sklearn Pipeline (prep + RF)
+meta  = artifact["meta"]    # dict: feat_list, train dates, oob, etc.
 
 Troubleshooting
 
@@ -211,31 +281,32 @@ Troubleshooting
 Normal for very recent sessions. Use --preq to force the quali proxy, or just rely on the built-in fallback.
 
 UserWarning: “Skipping features without any observed values … for imputation”
-Harmless. It means a feature had no numeric observations in the training slice; the imputer skips it.
+Harmless. A feature had no numeric observations in the training slice; the imputer skips it.
 
 FutureWarning about .fillna downcasting
-Also harmless in current versions. We coerce dtypes before fills in recent code paths.
+Harmless with current versions. The code coerces dtypes in relevant paths.
 
 Model not saving
-Ensure you passed --save_model with a valid path and that the folder exists or is creatable.
+Make sure you passed --save_model with a valid path; folders are created automatically.
 Example: --save_model models/rf_latest.joblib
 
 Using saved model but still retraining
-You used --auto_retrain and the code detected newer data or feature mismatches. Add --force_load to use the old model anyway (not recommended).
+You used --auto_retrain and newer data or feature mismatches were detected.
+Add --force_load to use the old model anyway (not recommended).
 
 Roadmap
 
-Backtesting: chronological splits + metrics better aligned with ranking (Spearman, NDCG@10, Top-k hit rate).
+Backtesting: chronological splits + ranking metrics (Spearman, NDCG@10, Top-k hit rate).
 
-More features: sprint weekend flag; tyre/pit priors; DRS effectiveness; upgrades phase; weather merge.
+More features: sprint-weekend flag; tyre/pit priors; DRS effectiveness; upgrades; weather merge.
 
-Modeling: compare Gradient Boosting (LightGBM/XGBoost) and pairwise/ranking objectives.
+Modeling: try Gradient Boosting (LightGBM/XGBoost) and ranking objectives.
 
 Calibration: split-conformal or quantile forests for coverage-aware intervals.
 
-Experiment tracking: MLflow or simple CSV logs per run.
+Experiment tracking: MLflow or simple per-run CSV logs.
 
-Tests: basic pytest suite (no leakage, stable feature sets, save/load roundtrip).
+Tests: pytest for leakage checks, feature stability, save/load round-trip.
 
 Contributing
 
@@ -245,39 +316,14 @@ Keep features leakage-safe
 
 Add unit tests for new feature transforms
 
-Document new CLI flags in this README
+Document new CLI flags here in the README
 
 License
 
-This project is released under the MIT License (see LICENSE).
+Released under the MIT License (see LICENSE).
 
 Acknowledgements
 
 Data access via FastF1 (which uses Ergast and timing sources).
 
-Inspiration from standard motorsport analytics workflows and public community tools.
-
-One-liners You’ll Use Often
-
-Train, evaluate, predict, and save:
-
-python -m F1_prediction_system.main \
-  --year 2025 --gp "Dutch Grand Prix" \
-  --save_model models/rf_latest.joblib
-
-
-Predict using the saved model (no retrain):
-
-python -m F1_prediction_system.main \
-  --year 2025 --gp "Dutch Grand Prix" \
-  --load_model models/rf_latest.joblib
-
-
-Pre-Quali simulation with more MC:
-
-python -m F1_prediction_system.main \
-  --year 2025 --gp "Dutch Grand Prix" \
-  --preq --proxy_window 3 --mc 2000 --interval 95
-
-
-You’re ready for race weekend 🚦🏁
+Inspiration from standard motorsport analytics workflows and the F1 analytics community.
