@@ -31,18 +31,12 @@ Table of Contents
 - [Acknowledgements](#acknowledgements)
 - [One-liners You’ll Use Often](#one-liners-youll-use-often)
 
-<details>
-<summary><b>Highlights</b></summary>
-
-- **End-to-end pipeline:** history → driver/team form (leakage-safe) → circuit context → model.
-- **Uncertainty built-in:** per-driver prediction σ, 68%/95% bands, and Monte-Carlo rank probabilities (Top-10, Podium, ±1 rank).
-- **Pre-Quali fallback:** if Q/FP1 are missing, a quali proxy from recent races is used.
-- **Model persistence:** save/load trained pipelines with metadata (feature list, training dates, OOB metrics).
+## Highlights
+- **End-to-end pipeline:** history → driver/team form (leakage-safe) → circuit context → model.  
+- **Uncertainty built-in:** per-driver prediction σ, 68%/95% bands, and Monte-Carlo rank probabilities (Top-10, Podium, ±1 rank).  
+- **Pre-Quali fallback:** if Q/FP1 are missing, a quali proxy from recent races is used.  
+- **Model persistence:** save/load trained pipelines with metadata (feature list, train dates, OOB metrics).  
 - **CLI workflow:** one command to train, evaluate, and predict.
-<p align="right"><a href="#readme-top">↑ back to top</a></p>
-
-</details>
-
 
 
 **Example Output (table)**
