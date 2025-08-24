@@ -3,7 +3,6 @@ F1 Race Predictor (RF + Uncertainty)
 Predict the finishing order of Formula 1 races with a leakage-safe feature pipeline, a Random Forest regressor, and built-in uncertainty.
 The project pulls historical results up to a target Grand Prix, engineers driver/team “form” and circuit context features, and produces point predictions plus confidence bands. It gracefully handles missing current-weekend data (e.g., qualifying not published yet).
 
-<p align="center"> <img src="docs/img/hero.png" alt="F1 Race Predictor overview" width="820"> <br> <em>End-to-end: data ➜ features ➜ model ➜ predictions (with uncertainty)</em> </p>
 Table of Contents
 
 ## Table of Contents
@@ -46,12 +45,14 @@ CLI workflow: one command to train, evaluate, and predict.
 
 Example Output
 
-Predicted Top 10:
-driver            team  grid_pos  pred_finish  pred_rank  pred_std  pi68_low  pi68_high  p_top10  p_podium  p_rank_pm1
-   PIA         McLaren     2.33         1.71          1     1.28      1.00       2.99     1.000     0.912       0.660
-   NOR         McLaren     1.67         2.81          2     3.07      1.00       5.88     0.996     0.624       0.624
-   VER Red Bull Racing     2.33         5.21          3     4.39      1.00       9.60     0.864     0.354       0.332
-   ...
+**Example Output (table)**
+
+| driver | team              | grid_pos | pred_finish | pred_rank | pred_std | pi68_low | pi68_high | p_top10 | p_podium | p_rank_pm1 |
+|:------:|-------------------|:--------:|:-----------:|:---------:|:--------:|:--------:|:---------:|:-------:|:--------:|:----------:|
+| PIA    | McLaren           | 2.33     | 1.71        | 1         | 1.28     | 1.00     | 2.99      | 1.000   | 0.912    | 0.660      |
+| NOR    | McLaren           | 1.67     | 2.81        | 2         | 3.07     | 1.00     | 5.88      | 0.996   | 0.624    | 0.624      |
+| VER    | Red Bull Racing   | 2.33     | 5.21        | 3         | 4.39     | 1.00     | 9.60      | 0.864   | 0.354    | 0.332      |
+| …      | …                 | …        | …           | …         | …        | …        | …         | …       | …        | …          |
 
 
 Field notes
