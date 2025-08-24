@@ -64,6 +64,11 @@ Table of Contents
 
 
 ## Architecture
+<div align="center">
+
+```mermaid
+<!-- your diagram here -->
+
 flowchart LR
   %% ========= CLASSES / STYLES =========
   classDef data  fill:#E3F2FD,stroke:#1E88E5,color:#0D47A1,stroke-width:1px;
