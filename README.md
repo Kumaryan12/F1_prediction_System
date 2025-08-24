@@ -62,13 +62,13 @@ Table of Contents
 
 </details>
 
-## Architecture
+
 ## Architecture
 
 ```mermaid
 flowchart LR
 
-  %% ===== TRAINING =====
+  %% ===================== TRAINING =====================
   subgraph TRAINING[Training Pipeline]
     direction LR
     A[Historic results<br/>(FastF1 / Ergast cache)]
@@ -77,11 +77,12 @@ flowchart LR
     D[add_circuit_context_df()]
     E[train_model()<br/>(RandomForest + OHE + Imputer)]
     F[oob_errors()<br/>(OOB R² / MAE / RMSE)]
+    M[(models/*.joblib)]
     A --> B --> C --> D --> E --> F
-    E --> M[(models/*.joblib)]
+    E --> M
   end
 
-  %% ===== PREDICTION =====
+  %% ===================== PREDICTION ====================
   subgraph PRED[Prediction (Target GP)]
     direction LR
     P1[get_target_drivers()<br/>(Q → FP1 → proxy)]
@@ -93,13 +94,15 @@ flowchart LR
     P1 --> P2 --> P3 --> P4 --> P5 --> O
   end
 
-  %% ===== LINKS =====
-  E -- trained model --> P5
+  %% ===================== LINKS ========================
+  E -- trained pipeline --> P5
   M -- load_model --> P5
 
-  M -- load_model --> P5
-
-
+  %% ===================== STYLES =======================
+  classDef training fill:#e9f2ff,stroke:#1f62d1,stroke-width:1px,color:#0b1f4a;
+  classDef pred     fill:#fff4e6,stroke:#d27600,stroke-width:1px,color:#3d1c00;
+  class A,B,C,D,E,F,M training;
+  class P1,P2,P3,P4,P5,O pred;
 ```
 
 
