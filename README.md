@@ -1,3 +1,4 @@
+<a id="readme-top"></a>
 F1 Race Predictor (RF + Uncertainty)
 
 Predict the finishing order of Formula 1 races with a leakage-safe feature pipeline, a Random Forest regressor, and built-in uncertainty.
@@ -38,6 +39,8 @@ Table of Contents
 - **Model persistence:** save/load trained pipelines with metadata (feature list, train dates, OOB metrics).  
 - **CLI workflow:** one command to train, evaluate, and predict.
 
+<p align="right"><a href="#readme-top">↑ back to top</a></p>
+
 
 **Example Output (table)**
 
@@ -60,16 +63,51 @@ Table of Contents
 </details>
 
 
-Architecture
+## Architecture
 flowchart LR
-  A[Historic results (FastF1/Ergast)] --> B[build_training_until()]
-  B --> C[add_driver_team_form()]
-  C --> D[add_circuit_context_df()]
-  D --> E[train_model(RandomForest + OHE + Imputer)]
-  E --> F[oob_errors()]
-  E --> G[predict_event_with_uncertainty()]
-  G --> H[MC ranks & predictive intervals]
-  H --> I[predicted_order.csv]
+  %% ========= CLASSES / STYLES =========
+  classDef data  fill:#E3F2FD,stroke:#1E88E5,color:#0D47A1,stroke-width:1px;
+  classDef proc  fill:#F1F8E9,stroke:#7CB342,color:#2E7D32,stroke-width:1px;
+  classDef model fill:#FFF3E0,stroke:#FB8C00,color:#E65100,stroke-width:1px;
+  classDef eval  fill:#FCE4EC,stroke:#D81B60,color:#880E4F,stroke-width:1px;
+  classDef out   fill:#E8F5E9,stroke:#43A047,color:#1B5E20,stroke-width:1px;
+
+  %% ========= DATA SOURCES =========
+  A[Historic results<br/>(FastF1 / Ergast cache)]:::data
+
+  %% ========= TRAINING PIPELINE =========
+  subgraph TR[Training Pipeline]
+    direction LR
+    B[build_training_until()]:::proc
+    C[add_driver_team_form()<br/><i>Leakage-safe rolling (shifted)</i>]:::proc
+    D[add_circuit_context_df()]:::proc
+    E[train_model()<br/>(RandomForest + OHE + Imputer)]:::model
+    F[oob_errors()<br/>(OOB R² / MAE / RMSE)]:::eval
+    A --> B --> C --> D --> E --> F
+  end
+
+  %% ========= MODEL ARTIFACT =========
+  M[(models/*.joblib<br/>save / load)]:::data
+  E -- save --> M
+
+  %% ========= PREDICTION PIPELINE =========
+  subgraph PR[Prediction (Target GP)]
+    direction LR
+    T[get_target_drivers()<br/>(Q → FP1 → proxy)]:::proc
+    D2[add_circuit_context_df()]:::proc
+    MR[merge_latest_forms()<br/>(driver/team form from history)]:::proc
+    QP[add_quali_proxy()<br/>(if grid unknown or --preq)]:::proc
+    G[predict_event_with_uncertainty()]:::model
+    H[MC ranks &<br/>predictive intervals]:::eval
+    I[predicted_order.csv<br/>+ console Top-10]:::out
+
+    T --> D2 --> MR --> QP --> G --> H --> I
+  end
+
+  %% ========= MODEL FLOW INTO PREDICTION =========
+  E -- trained model --> G
+  M -- load_model --> G
+
 
 
 Runtime path (train vs predict)
