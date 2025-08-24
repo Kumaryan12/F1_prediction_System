@@ -115,12 +115,7 @@ flowchart LR
 │   ├── model.py
 │   └── config.py
 ├── models/                      # saved models (.joblib)
-│   └── rf_latest.joblib         # (optional, created by you)
-├── docs/                        # images, diagrams, example outputs
-│   ├── architecture.mmd         # Mermaid source (optional)
-│   ├── architecture.png         # exported diagram (optional)
-│   ├── example_output.png       # screenshot of console/table
-│   └── banner.png               # project banner (optional)
+│   └── rf_latest.joblib         # (optional, created by you)                             
 ├── predicted_order.csv          # created by runs (gitignore if you want)
 ├── requirements.txt
 ├── Makefile
