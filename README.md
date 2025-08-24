@@ -66,52 +66,36 @@ Table of Contents
 ## Architecture
 <div align="center">
 
-```mermaid
-<!-- your diagram here -->
-
 flowchart LR
-  %% ========= CLASSES / STYLES =========
-  classDef data  fill:#E3F2FD,stroke:#1E88E5,color:#0D47A1,stroke-width:1px;
-  classDef proc  fill:#F1F8E9,stroke:#7CB342,color:#2E7D32,stroke-width:1px;
-  classDef model fill:#FFF3E0,stroke:#FB8C00,color:#E65100,stroke-width:1px;
-  classDef eval  fill:#FCE4EC,stroke:#D81B60,color:#880E4F,stroke-width:1px;
-  classDef out   fill:#E8F5E9,stroke:#43A047,color:#1B5E20,stroke-width:1px;
-
-  %% ========= DATA SOURCES =========
-  A[Historic results<br/>(FastF1 / Ergast cache)]:::data
-
-  %% ========= TRAINING PIPELINE =========
-  subgraph TR[Training Pipeline]
+  %% ===== TRAINING =====
+  subgraph TRAINING[Training Pipeline]
     direction LR
-    B[build_training_until()]:::proc
-    C[add_driver_team_form()<br/><i>Leakage-safe rolling (shifted)</i>]:::proc
-    D[add_circuit_context_df()]:::proc
-    E[train_model()<br/>(RandomForest + OHE + Imputer)]:::model
-    F[oob_errors()<br/>(OOB R² / MAE / RMSE)]:::eval
+    A[Historic results\n(FastF1 / Ergast cache)]
+    B[build_training_until()]
+    C[add_driver_team_form()\n(shifted 3-race rolling)]
+    D[add_circuit_context_df()]
+    E[train_model()\n(RandomForest + OHE + Imputer)]
+    F[oob_errors()\n(OOB R² / MAE / RMSE)]
     A --> B --> C --> D --> E --> F
+    E --> M[(models/*.joblib)]
   end
 
-  %% ========= MODEL ARTIFACT =========
-  M[(models/*.joblib<br/>save / load)]:::data
-  E -- save --> M
-
-  %% ========= PREDICTION PIPELINE =========
-  subgraph PR[Prediction (Target GP)]
+  %% ===== PREDICTION =====
+  subgraph PRED[Prediction (Target GP)]
     direction LR
-    T[get_target_drivers()<br/>(Q → FP1 → proxy)]:::proc
-    D2[add_circuit_context_df()]:::proc
-    MR[merge_latest_forms()<br/>(driver/team form from history)]:::proc
-    QP[add_quali_proxy()<br/>(if grid unknown or --preq)]:::proc
-    G[predict_event_with_uncertainty()]:::model
-    H[MC ranks &<br/>predictive intervals]:::eval
-    I[predicted_order.csv<br/>+ console Top-10]:::out
-
-    T --> D2 --> MR --> QP --> G --> H --> I
+    P1[get_target_drivers()\n(Q → FP1 → proxy)]
+    P2[add_circuit_context_df()]
+    P3[merge_latest_forms()\n(driver/team forms from history)]
+    P4[add_quali_proxy()\n(if grid unknown or --preq)]
+    P5[predict_event_with_uncertainty()]
+    O[predicted_order.csv\n+ console Top-10]
+    P1 --> P2 --> P3 --> P4 --> P5 --> O
   end
 
-  %% ========= MODEL FLOW INTO PREDICTION =========
-  E -- trained model --> G
-  M -- load_model --> G
+  %% connect trained/saved model to prediction
+  E -- trained model --> P5
+  M -- load_model --> P5
+
 
 
 
