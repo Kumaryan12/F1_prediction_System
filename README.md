@@ -63,43 +63,25 @@ Table of Contents
 </details>
 
 ## Architecture
-flowchart LR
+graph LR
+  %% ===== TRAINING =====
+  A[Historic results (FastF1/Ergast)] --> B[build_training_until()]
+  B --> C[add_driver_team_form (shifted 3-race)]
+  C --> D[add_circuit_context_df]
+  D --> E[train_model (RandomForest + OHE + Imputer)]
+  E --> F[oob_errors (OOB R² / MAE / RMSE)]
+  E --> M[(models/*.joblib)]
 
-  %% ===================== TRAINING =====================
-  subgraph TRAINING[Training Pipeline]
-    direction LR
-    A[Historic results<br/>(FastF1 / Ergast cache)]
-    B[build_training_until()]
-    C[add_driver_team_form()<br/>(shifted 3-race rolling)]
-    D[add_circuit_context_df()]
-    E[train_model()<br/>(RandomForest + OHE + Imputer)]
-    F[oob_errors()<br/>(OOB R² / MAE / RMSE)]
-    M[(models/*.joblib)]
-    A --> B --> C --> D --> E --> F
-    E --> M
-  end
+  %% ===== PREDICTION =====
+  P1[get_target_drivers (Q → FP1 → proxy)] --> P2[add_circuit_context_df]
+  P2 --> P3[merge_latest_forms (driver & team form)]
+  P3 --> P4[add_quali_proxy (if grid unknown or --preq)]
+  P4 --> P5[predict_event_with_uncertainty]
+  P5 --> O[predicted_order.csv + console Top-10]
 
-  %% ===================== PREDICTION ====================
-  subgraph PRED[Prediction (Target GP)]
-    direction LR
-    P1[get_target_drivers()<br/>(Q → FP1 → proxy)]
-    P2[add_circuit_context_df()]
-    P3[merge_latest_forms()<br/>(driver & team form)]
-    P4[add_quali_proxy()<br/>(if grid unknown or --preq)]
-    P5[predict_event_with_uncertainty()]
-    O[predicted_order.csv<br/>+ console Top-10]
-    P1 --> P2 --> P3 --> P4 --> P5 --> O
-  end
-
-  %% ===================== LINKS ========================
-  E -- trained pipeline --> P5
+  %% ===== LINKS =====
   M -- load_model --> P5
 
-  %% ===================== STYLES =======================
-  classDef training fill:#e9f2ff,stroke:#1f62d1,stroke-width:1px,color:#0b1f4a;
-  classDef pred     fill:#fff4e6,stroke:#d27600,stroke-width:1px,color:#3d1c00;
-  class A,B,C,D,E,F,M training;
-  class P1,P2,P3,P4,P5,O pred;
 
 
 
