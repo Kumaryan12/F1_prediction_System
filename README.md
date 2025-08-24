@@ -96,10 +96,10 @@ flowchart LR
   %% ===== LINKS =====
   E -- "trained model" --> P5
   M -- "load_model" --> P5
+```
 
 
-
-
+```mermaid
 
 sequenceDiagram
   autonumber
