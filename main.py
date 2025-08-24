@@ -166,13 +166,18 @@ def main():
                 _, feat_list_now = _prep_fe_matrix(train_df.dropna(subset=["finish_pos"]).copy())
             except Exception:
                 feat_list_now = []
+            
+            if isinstance(HIST_YEARS, (list, tuple)):
+               hist_years_meta = list(HIST_YEARS)          # store the actual years, e.g. [2023, 2024, 2025]
+            else:
+              hist_years_meta = int(HIST_YEARS) if isinstance(HIST_YEARS, (int, float)) else str(HIST_YEARS)
 
             meta = {
                 "feat_list": feat_list_now,
                 "train_rows": int(train_df.dropna(subset=["finish_pos"]).shape[0]),
                 "train_start_date": str(pd.to_datetime(train_df["date"]).min()),
                 "train_end_date": str(pd.to_datetime(train_df["date"]).max()),
-                "hist_years": int(HIST_YEARS),
+                "hist_years": list(HIST_YEARS),
                 "target_context": {"year": target_year, "gp": target_gp},
                 "oob": oob_errors(model, train_df) or {},
                 "model": "RandomForestRegressor(n_estimators=500, random_state=42)",

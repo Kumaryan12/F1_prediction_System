@@ -96,3 +96,5 @@ Thumbs.db
 .coverage
 .pytest_cache/
 htmlcov/
+/models/
+/notebooks/
