@@ -64,7 +64,6 @@ Table of Contents
 
 
 ## Architecture
-<div align="center">
 
 flowchart LR
   %% ===== TRAINING =====
