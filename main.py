@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import joblib
+import fastf1
 
 from .config import HIST_YEARS
 from .data import build_training_until as build_until_data, get_target_drivers
@@ -30,9 +31,13 @@ def build_predict_frame(target_year: int, target_gp: str, train_df_with_forms: p
 
     # If grid is unknown (pre-Q), use quali proxy from recent races
     if pred_df["grid_pos"].isna().any():
+        print("Qualifying data missing, using proxy...")
         proxy_base = train_df_with_forms[["driver", "date", "grid_pos"]].dropna()
         pred_df = add_quali_proxy(pred_df, proxy_base, window=3)
+
     return pred_df
+
+    
 
 
 def _safe_load_model(path: str):
@@ -160,7 +165,7 @@ def main():
             print("[OOB] Not available")
 
         if args.save_model:
-            # Build metadata for artifact (if helper available we’ll use it)
+            # Build metadata for artifact
             try:
                 from .model import _prep_fe_matrix  # type: ignore
                 _, feat_list_now = _prep_fe_matrix(train_df.dropna(subset=["finish_pos"]).copy())
@@ -186,7 +191,7 @@ def main():
             saved_path = _safe_save_model(model, args.save_model, meta)
             print(f"[INFO] Saved model to {saved_path}")
     else:
-        # If you still want diagnostics with a loaded model, try OOB (may be unavailable/mismatched)
+        
         errs = oob_errors(model, train_df)
         if errs:
             print(f"[OOB] R2={errs['oob_r2']:.3f} | MAE={errs['oob_mae']:.2f} | RMSE={errs['oob_rmse']:.2f}")
@@ -195,13 +200,27 @@ def main():
     print(f"[INFO] Building prediction frame for {target_gp} {target_year}…")
     pred_df = build_predict_frame(target_year, target_gp, train_df)
 
-    # Optional: pre-Q behavior (force proxy on all)
+    
+    # Optional: Pre-Q behavior 
     if args.preq:
-        proxy_base = train_df[["driver", "date", "grid_pos"]].dropna()
-        pred_df = pred_df.copy()
-        pred_df["grid_pos"] = pd.to_numeric(pred_df["grid_pos"], errors="coerce")
-        pred_df.loc[:, "grid_pos"] = np.nan
-        pred_df = add_quali_proxy(pred_df, proxy_base, window=args.proxy_window)
+        try:
+            session = fastf1.get_session(args.year, args.gp, 'Q')
+            session.load()  # Loads the session data
+
+        # Check if qualifying data is available
+            if session.laps.empty:
+             raise ValueError(f"No qualifying data available for {args.gp} {args.year}.")
+
+        # Map the actual grid positions to the DataFrame
+            pred_df = pred_df.copy()
+            pred_df["grid_pos"] = pred_df["driver"].map(dict(zip(session.laps['Driver'], session.laps['GridPosition'])))
+
+        except Exception as e:
+         print(f"[WARNING] Failed to load qualifying data for {args.gp} {args.year}. Error: {e}")
+         # If qualifying data is not available, fallback to proxy
+         print(f"Using qualifying proxy for {args.gp} {args.year}.")
+         proxy_base = train_df[["driver", "date", "grid_pos"]].dropna()
+         pred_df = add_quali_proxy(pred_df, proxy_base, window=args.proxy_window)
 
     # Sanity checks
     if pred_df.empty:

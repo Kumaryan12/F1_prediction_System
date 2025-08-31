@@ -40,7 +40,7 @@ def _prep_fe_matrix(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
     for m in missing:
         df[m] = np.nan
 
-    feat_list = present + missing  # preserve deterministic order
+    feat_list = present + missing  
     return df[feat_list], feat_list
 
 
@@ -62,10 +62,12 @@ def train_model(train_df: pd.DataFrame) -> Pipeline:
     )
 
     rf = RandomForestRegressor(
-        n_estimators=500,
+        n_estimators=600,
+        min_samples_leaf=5,
+        max_depth=None,
         random_state=42,
         n_jobs=-1,
-        oob_score=True,     # expose oob_prediction_
+        oob_score=True,     
         bootstrap=True
     )
 
@@ -96,7 +98,7 @@ def oob_errors(model, train_df: pd.DataFrame) -> Dict[str, float]:
     oob_r2  = float(r2_score(y_true, y_oob))
     oob_mae = float(mean_absolute_error(y_true, y_oob))
     # Compute RMSE manually for broad sklearn compatibility
-    mse = float(mean_squared_error(y_true, y_oob))  # no 'squared' kw
+    mse = float(mean_squared_error(y_true, y_oob))  
     oob_rmse = float(np.sqrt(mse))
     return {"oob_r2": oob_r2, "oob_mae": oob_mae, "oob_rmse": oob_rmse}
 
@@ -109,15 +111,7 @@ def predict_event_with_uncertainty(
     mc_samples: int = 0,
     random_state: int = 42
 ) -> pd.DataFrame:
-    """
-    Predict finishing positions and attach uncertainty metrics.
-
-    Returns columns:
-      driver, team, grid_pos, pred_finish, pred_rank, pred_std
-      (if add_intervals) pi68_low/pi68_high, pi95_low/pi95_high
-      plus backward-compatible aliases: pred_low/pred_high (68%)
-      (if mc_samples>0) p_top10, p_podium, p_rank_pm1
-    """
+    
     X_raw, _ = _prep_fe_matrix(features_df.copy())
     prep = model.named_steps["prep"]
     rf = model.named_steps["rf"]
@@ -151,11 +145,11 @@ def predict_event_with_uncertainty(
         out["pi95_low"] = lo95
         out["pi95_high"] = hi95
 
-        # Back-compat aliases so existing main.py prints them automatically
+        
         out["pred_low"] = lo68
         out["pred_high"] = hi68
 
-    # Monte Carlo rank probabilities (optional)
+    
     if mc_samples and mc_samples > 0:
         rng = np.random.default_rng(random_state)
         mu = out["pred_finish"].to_numpy()
@@ -164,7 +158,7 @@ def predict_event_with_uncertainty(
         n = len(mu)
         samples = rng.normal(loc=mu[:, None], scale=sd[:, None], size=(n, mc_samples))
 
-        # Convert sampled finishes -> ranks per simulation
+        
         idx_sorted = np.argsort(samples, axis=0)               # (n, mc)
         ranks = np.empty_like(idx_sorted)
         ranks[idx_sorted, np.arange(mc_samples)] = np.arange(1, n + 1)[:, None]

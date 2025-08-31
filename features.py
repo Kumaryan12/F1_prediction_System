@@ -70,17 +70,30 @@ def merge_latest_forms(predict_df: pd.DataFrame, train_df_with_forms: pd.DataFra
 
 
 
-def add_quali_proxy(predict_df:pd.DataFrame, train_df: pd.DataFrame, window: int=3) ->pd.DataFrame:
+def add_quali_proxy(predict_df: pd.DataFrame, train_df: pd.DataFrame, window: int = 3) -> pd.DataFrame:
+    """
+    Adds a qualifying proxy if the grid position is missing in the prediction data.
+    """
+    # Check if there are any missing grid positions
+    missing_grid = predict_df['grid_pos'].isna().sum()
 
-    tmp=(train_df.sort_values("date")
-        .groupby("driver")["grid_pos"]
-        .apply(lambda s: s.tail(window).mean())
-        .reset_index().rename(columns= {"grid_pos": "qual_proxy"}))
-    
+    # If grid positions are missing, apply proxy
+    if missing_grid > 0:
+        print(f"Missing {missing_grid} grid positions, applying quali proxy")
+        tmp = (train_df.sort_values("date")
+                .groupby("driver")["grid_pos"]
+                .apply(lambda s: s.tail(window).mean())
+                .reset_index().rename(columns={"grid_pos": "qual_proxy"}))
 
-    out = predict_df.merge(tmp, on="driver", how="left")
-    out["grid_pos"] = out["grid_pos"].fillna(out["qual_proxy"])
-    return out.drop(columns=["qual_proxy"])
+        # Merge the proxy values into the prediction dataframe
+        out = predict_df.merge(tmp, on="driver", how="left")
+        out["grid_pos"] = out["grid_pos"].fillna(out["qual_proxy"])  # Fills missing grid_pos with proxy
+        out = out.drop(columns=["qual_proxy"])
+        return out
+    else:
+        print("All grid positions are available, no proxy needed")
+        return predict_df  # No proxy applied, return as is
+
 
 
     

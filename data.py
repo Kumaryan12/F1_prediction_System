@@ -1,45 +1,81 @@
 from __future__ import annotations
 import pandas as pd
 import fastf1
-from typing import List, Tuple
+from typing import List, Dict, Tuple, Optional
 from .config import CACHE_DIR, FALLBACK_EVENTS, EXCLUDE_EVENTS
-
-
 
 fastf1.Cache.enable_cache(CACHE_DIR)
 
+HARDCODED_GRID: Dict[Tuple[int, str], Dict[str, int]] = {
+    (2025, "Dutch Grand Prix"): {
+        "PIA": 1,
+        "NOR": 2,
+        "VER": 3,
+        "HAD": 4,
+        "RUS": 5,
+        "LEC": 6,
+        "HAM": 7,
+        "LAW": 8,
+        "SAI": 9,
+        "ALO": 10,
+        "ANT": 11,
+        "TSU": 12,
+        "BOR": 13,
+        "GAS": 14,
+        "ALB": 15,
+        "COL": 16,
+        "HUL": 17,
+        "OCO": 18,
+        "BEA": 19,
+        "STR": 20
+        
+    }
+}
+
+def _apply_hardcoded_grid(df: pd.DataFrame, year: int, gp: str) -> pd.DataFrame:
+    """If a hardcoded grid is available for (year, gp), override grid_pos by driver abbrev."""
+    mapping = HARDCODED_GRID.get((year, gp))
+    if not mapping:
+        return df
+
+    df = df.copy()
+    override = df["driver"].map(mapping).astype("float64")
+    df["grid_pos"] = override.where(override.notna(), df.get("grid_pos"))
+    return df
+
+
+
+# Schedule / helpers
+
 def _event_schedule(year: int) -> pd.DataFrame:
     try:
-     
-     sch = fastf1.get_event_schedule(year)
-     if "EventFormat" in sch.columns:
-         sch = sch[sch["EventFormat"].str.lower() != "testing"]
-     sch = sch[~sch["EventName"].str.contains("testing", case=False, na=False)]
-     return sch[["EventName", "EventDate"]].rename(columns={"EventName": "gp", "EventDate": "date"})
-    
+        sch = fastf1.get_event_schedule(year)
+        if "EventFormat" in sch.columns:
+            sch = sch[sch["EventFormat"].str.lower() != "testing"]
+        sch = sch[~sch["EventName"].str.contains("testing", case=False, na=False)]
+        return sch[["EventName", "EventDate"]].rename(columns={"EventName": "gp", "EventDate": "date"})
     except Exception:
         events = FALLBACK_EVENTS.get(year, [])
         if not events:
             raise
         dates = pd.date_range(f"{year}-01-01", periods=len(events), freq="7D")
-        return pd.DataFrame({"gp": events, "date": dates})    
-    
+        return pd.DataFrame({"gp": events, "date": dates})
+
 
 def _race_has_results(year: int, gp: str) -> bool:
     """Return True only if the race session has real results (i.e., it has been run)."""
     try:
         ses = fastf1.get_session(year, gp, "R")
-        # results-only load; avoids heavy timing/telemetry endpoints
         ses.load(telemetry=False, laps=False, weather=False, messages=False)
         res = ses.results
         return (res is not None) and (not res.empty)
     except Exception:
         return False
-    
+
+
 def _load_results_only(year: int, gp: str, sess_name: str) -> pd.DataFrame:
     """Return .results for a session, without laps/telemetry/etc. Raise if missing/empty."""
     ses = fastf1.get_session(year, gp, sess_name)
-    # results-only; avoid heavy endpoints that hang
     try:
         ses.load(telemetry=False, laps=False, weather=False, messages=False)
     except TypeError:
@@ -53,35 +89,33 @@ def _load_results_only(year: int, gp: str, sess_name: str) -> pd.DataFrame:
     return res
 
 
-
-
-
 def list_gp_events(year: int) -> List[str]:
     return _event_schedule(year)["gp"].tolist()
 
-def list_before_target(year: int, target_gp : str) -> List[str]:
-    sch= _event_schedule(year)
+
+def list_before_target(year: int, target_gp: str) -> List[str]:
+    sch = _event_schedule(year)
     if target_gp not in sch["gp"].values:
-        raise ValueError(f"Target gp{target_gp} not found in {year} schedule")
-    tgt_date= sch.loc[sch['gp']== target_gp, "date"].iloc[0]
+        raise ValueError(f"Target gp {target_gp} not found in {year} schedule")
+    tgt_date = sch.loc[sch['gp'] == target_gp, "date"].iloc[0]
     return sch.loc[sch["date"] < tgt_date, "gp"].tolist()
 
-def _pick(cols:pd.Index, *candidates: str) -> str:
-    for c in candidates:
-        if c in cols:
-            return c
-    raise KeyError(f"None of the candidates found in columns: {list(cols)}")
 
-def _event_date(year:int, gp_name: str):
-    sch= _event_schedule(year)
-    row = sch.loc[sch["gp"]== gp_name]
+def _event_date(year: int, gp_name: str):
+    sch = _event_schedule(year)
+    row = sch.loc[sch["gp"] == gp_name]
     if row.empty:
         return None
     return row["date"].iloc[0]
 
+
+
+# Build event rows for training
+
 def extract_event_qr(year: int, gp_name: str) -> pd.DataFrame:
     """Return one row per driver with grid_pos and finish_pos.
        Prefer both from Race results; fall back to Quali for grid only if needed.
+       NOTE: We do NOT apply hardcoded grids here (to keep training leakage-safe).
     """
     r_res = _load_results_only(year, gp_name, "R")
     if r_res is None or len(r_res) == 0:
@@ -91,7 +125,7 @@ def extract_event_qr(year: int, gp_name: str) -> pd.DataFrame:
     r_res["DriverNumber"] = r_res["DriverNumber"].astype(str).str.strip()
     fin_col = "ClassifiedPosition" if "ClassifiedPosition" in r_res.columns else "Position"
 
-    df = None  # <— ensure we don't reference it before assignment
+    df = None
 
     # 1) Use race grid if available
     if "GridPosition" in r_res.columns and r_res["GridPosition"].notna().any():
@@ -129,7 +163,6 @@ def extract_event_qr(year: int, gp_name: str) -> pd.DataFrame:
         ri = r_res[need_r].rename(columns={fin_col: "finish_pos"})
         df = qi.merge(ri, on="DriverNumber", how="inner")
 
-    # 3) Validate rows and types
     if df is None or df.empty:
         raise RuntimeError("no rows after assembling Q/R")
 
@@ -140,7 +173,6 @@ def extract_event_qr(year: int, gp_name: str) -> pd.DataFrame:
     if df.empty:
         raise RuntimeError("positions all NA after coercion")
 
-    # 4) Safe assignments (no chained warnings)
     df = df.copy()
     df.loc[:, "year"] = year
     df.loc[:, "gp"] = gp_name
@@ -148,8 +180,6 @@ def extract_event_qr(year: int, gp_name: str) -> pd.DataFrame:
     df.loc[:, "DriverNumber"] = df["DriverNumber"].astype(str)
 
     return df[["year", "gp", "date", "driver", "team", "grid_pos", "finish_pos", "DriverNumber"]]
-
-
 
 
 def build_training_min(years: List[int]) -> pd.DataFrame:
@@ -167,17 +197,17 @@ def build_training_min(years: List[int]) -> pd.DataFrame:
         raise RuntimeError(f"No events Loaded. Sample Errors: {errors[:3]}")
     return pd.concat(out, ignore_index=True)
 
+
 def build_training_until(target_year: int, target_gp: str, hist_years=range(2023, 2025)) -> pd.DataFrame:
     from time import perf_counter
 
-    # Optional exclude support if present in module globals (from config.EXCLUDE_EVENTS)
     EXC = globals().get("EXCLUDE_EVENTS", {})
     def _not_excluded(year: int, gp: str) -> bool:
         return gp not in EXC.get(year, set())
 
     rows = []
 
-    # ---- History years (e.g., 2023–2024) ----
+    # History years (e.g., 2023–2024)
     for y in hist_years:
         try:
             events_all = list_gp_events(y)
@@ -199,11 +229,10 @@ def build_training_until(target_year: int, target_gp: str, hist_years=range(2023
                 print(f"[SKIP] {y} {gp}: {e}")
                 continue
 
-    # ---- Current season up to target (no leakage; prefer races that actually have results) ----
+    # Current season up to target (only races that actually have results)
     try:
         pre_events_raw_all = list_before_target(target_year, target_gp)
         pre_events_raw = [gp for gp in pre_events_raw_all if _not_excluded(target_year, gp)]
-        # Keep only races that already have race results
         pre_events = [gp for gp in pre_events_raw if _race_has_results(target_year, gp)]
         if not pre_events and pre_events_raw:
             print("[WARN] No verified race results found; falling back to unverified pre-events list.")
@@ -235,15 +264,16 @@ def build_training_until(target_year: int, target_gp: str, hist_years=range(2023
     return full
 
 
-
+# Target drivers for prediction 
 
 def get_target_drivers(year: int, gp_name: str) -> pd.DataFrame:
     """
     Return driver/team/grid for the target event.
-    Order of preference:
+    Preference:
       1) Qualifying results (with grid)
       2) FP1 results (no grid)
-      3) Fallback to the latest completed race before target in the same season (no grid)
+      3) Fallback to the latest completed race before target (no grid)
+    Finally: if HARDCODED_GRID has an entry for (year, gp_name), override grid_pos.
     """
     # 1) Try Qualifying
     try:
@@ -259,11 +289,12 @@ def get_target_drivers(year: int, gp_name: str) -> pd.DataFrame:
             df.loc[:, "year"] = year
             df.loc[:, "gp"] = gp_name
             df.loc[:, "date"] = _event_date(year, gp_name)
-            return df[["year", "gp", "date", "driver", "team", "grid_pos", "DriverNumber"]]
+            df = df[["year", "gp", "date", "driver", "team", "grid_pos", "DriverNumber"]]
+            return _apply_hardcoded_grid(df, year, gp_name)
     except Exception:
         pass  # fall through
 
-    # 2) Try FP1 (entry list, no grid)
+    # 2) Try FP1
     try:
         fp_res = _load_results_only(year, gp_name, "FP1")
         fp_res = fp_res.copy()
@@ -275,7 +306,8 @@ def get_target_drivers(year: int, gp_name: str) -> pd.DataFrame:
             df.loc[:, "year"] = year
             df.loc[:, "gp"] = gp_name
             df.loc[:, "date"] = _event_date(year, gp_name)
-            return df[["year", "gp", "date", "driver", "team", "grid_pos", "DriverNumber"]]
+            df = df[["year", "gp", "date", "driver", "team", "grid_pos", "DriverNumber"]]
+            return _apply_hardcoded_grid(df, year, gp_name)
     except Exception:
         pass  # fall through
 
@@ -311,7 +343,5 @@ def get_target_drivers(year: int, gp_name: str) -> pd.DataFrame:
     ref.loc[:, "year"] = year
     ref.loc[:, "gp"] = gp_name
     ref.loc[:, "date"] = _event_date(year, gp_name)
-    return ref[["year", "gp", "date", "driver", "team", "grid_pos", "DriverNumber"]]
-
-
-
+    ref = ref[["year", "gp", "date", "driver", "team", "grid_pos", "DriverNumber"]]
+    return _apply_hardcoded_grid(ref, year, gp_name)
