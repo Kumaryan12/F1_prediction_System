@@ -66,26 +66,7 @@ and outputs point predictions with confidence bands. Gracefully handles missing 
 <p align="right"><a href="#readme-top">↑ back to top</a></p>
 
 ## Architecture
-graph LR
-  %% ===== TRAINING =====
-  A[Historic results (FastF1/Ergast)] --> B[build_training_until()]
-  B --> C[add_driver_team_form (shifted 3-race)]
-  C --> D[add_circuit_context_df]
-  D --> E[train_model (RandomForest + OHE + Imputer)]
-  E --> F[oob_errors (OOB R² / MAE / RMSE)]
-  E --> M[(models/*.joblib)]
 
-<<<<<<< HEAD
-  %% ===== PREDICTION =====
-  P1[get_target_drivers (Q → FP1 → proxy)] --> P2[add_circuit_context_df]
-  P2 --> P3[merge_latest_forms (driver & team form)]
-  P3 --> P4[add_quali_proxy (if grid unknown or --preq)]
-  P4 --> P5[predict_event_with_uncertainty]
-  P5 --> O[predicted_order.csv + console Top-10]
-
-  %% ===== LINKS =====
-  M -- load_model --> P5
-=======
 ```mermaid
 flowchart LR
 
@@ -118,56 +99,12 @@ flowchart LR
   E -- "trained model" --> P5
   M -- "load_model" --> P5
 ```
->>>>>>> origin/main
 
 
 <p align="right"><a href="#readme-top">↑ back to top</a></p>
 
 ## Project Structure
 
-<<<<<<< HEAD
-Runtime path (train vs predict)
-
-sequenceDiagram
-  participant User
-  participant CLI as python -m F1_prediction_system.main
-  participant Data as data.py
-  participant Feat as features.py
-  participant Model as model.py
-
-  User->>CLI: --year 2025 --gp "Dutch Grand Prix"
-  CLI->>Data: build_training_until()
-  Data-->>CLI: train_df
-  CLI->>Feat: add_driver_team_form(), add_circuit_context_df()
-  Feat-->>CLI: train_df+
-  CLI->>Model: train_model(train_df+)
-  Model-->>CLI: pipeline (prep + RF)
-  CLI->>Data: get_target_drivers()
-  CLI->>Feat: merge_latest_forms(), add_quali_proxy()
-  Feat-->>CLI: pred_df
-  CLI->>Model: predict_event_with_uncertainty(model, pred_df)
-  Model-->>CLI: predictions + intervals + MC probs
-  CLI-->>User: Top-10 table & saved CSV
-
-Project Structure
-F1_prediction_system/
-  ├─ __init__.py
-  ├─ main.py                 # CLI entry point
-  ├─ data.py                 # data loading & target driver selection
-  ├─ features.py             # feature engineering (forms, circuit context, quali proxy)
-  ├─ model.py                # train RF, OOB errors, uncertainty, save/load helpers
-  ├─ config.py               # HIST_YEARS, CIRCUIT_VOL, defaults
-models/
-  └─ rf_latest.joblib        # (optional) saved model artifact
-predicted_order.csv          # output with full predictions (created by runs)
-LICENSE
-README.md
-docs/
-  ├─ img/                    # screenshots/diagrams for README
-  └─ diagrams/               # Mermaid / draw.io sources
-
-Installation
-=======
 ```bash
 .
 ├── F1_prediction_system/        # your package
@@ -189,7 +126,6 @@ Installation
 <p align="right"><a href="#readme-top">↑ back to top</a></p>
 
 ## Installation
->>>>>>> origin/main
 
 Python: 3.10+ recommended (tested on 3.13 as well)
 
